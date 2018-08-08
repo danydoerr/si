@@ -81,6 +81,7 @@ def __count_hits__(A, B, k):
     return s, hit_indel, s_comm
 
 def estimateIndels(n, mu, t):
+    """ \rho(t) """
     return 1-(1-float(mu)/n)**t
 
 def si(A, B, k):
@@ -94,18 +95,27 @@ def si(A, B, k):
 
 
 def estimateSI(n, lam, mu, k, t):
-   
+    """ \widetilde{SI} """
     it = estimateIndels(n, mu, t)
     return (1-np.exp(-(3*lam+2.*mu)*t/n)) 
     #return (1-np.exp(-(3*lam+2.*mu)*t/n)) * (n-1.-2.*k*(1-it))/(n-1.)
 
 def approximateSI(n, lam, mu, k, t):
-   
+    """ \widehat{SI} """ 
     it = estimateIndels(n, mu, t)
     return 1-(1-it)**2
 
 
 def evolve(genome, hgt_rate, indel_rate, time, c):
+    """ evolves a genome along evolutionary time according to the given rates of
+    HGT and indel events.
+    
+    The last parameter "c" denotes the next unused gene family ID count and is
+    necessary to ensure that only new gene families are inserted in indel
+    events.
+
+    The method yields after every time step. 
+    """
 
     orig = c-1
     for t in xrange(1, time+1):
@@ -127,6 +137,31 @@ def evolve(genome, hgt_rate, indel_rate, time, c):
 
         yield t, indel_events, new_indel_events
 
+
+def runExperiment(n, samples, time, hgt_rate, indel_rate, k):
+    """ let {samples} many genome evolve along evolutionary time and record the
+    SI distance at each time step"""
+
+    # data matrix that maintains changing SI distance along evolutionary time
+    data = np.empty((samples, time), dtype=float)
+    LOG.info(('sampling %s genomes of size %s over %s mutational ' + \
+            'steps...') %(samples, n, time))
+    
+    new_indels = np.empty(time)
+    new_indels[0] = 0
+    for s in xrange(samples):
+        if not (s % max(1, samples/100)):
+            LOG.info('%s%%' %((100*s)/samples))
+        A = constructGenome(n)
+        B = list(A)
+        for t, indel_events, new_indel_events in evolve(B, hgt_rate,
+                indel_rate, time, n):
+            data[s,t-1] = si(A, B, k)
+            if t-1:
+                new_indels[t-1] = new_indels[t-2]
+            new_indels[t-1] += new_indel_events
+   
+    return data, new_indels
 
 
 if __name__ == '__main__':
@@ -150,31 +185,18 @@ if __name__ == '__main__':
     ch.setFormatter(logging.Formatter('%(levelname)s\t%(asctime)s\t%(message)s'))
     LOG.addHandler(ch)
 
-    data = np.empty((args.samples, args.time), dtype=float)
-    LOG.info(('sampling %s genomes of size %s over %s mutational ' + \
-            'steps...') %(args.samples, args.n, args.time))
-    
-    x = np.array(xrange(args.time))+1
-    indels = list()
-    new_indels = np.empty(args.time)
-    new_indels[0] = 0
-    for s in xrange(args.samples):
-        if not (s % max(1, args.samples/100)):
-            LOG.info('%s%%' %((100*s)/args.samples))
-        A = constructGenome(args.n)
-        B = list(A)
-        for t, indel_events, new_indel_events in evolve(B, args.hgtrate,
-                args.indelrate, args.time, args.n):
-            data[s,t-1] = si(A, B, args.k)
-            if t-1:
-                new_indels[t-1] = new_indels[t-2]
-            new_indels[t-1] += new_indel_events
+    data, new_indels = runExperiment(args.n, args.samples, args.time,
+            args.hgtrate, args.indelrate, args.k)
 
-    
 #    x = np.array(xrange(args.time))
 #    plt.plot(x, new_indels, '.')
 #    plt.plot(x, estimateIndels(args.n, args.i, x)*args.n)
 #    plt.show()
+    #it = estimateIndels(args.n, args.indelrate, args.time)
+    #plt.plot(x, [(1.-(2.*args.k*(1-it))/(args.n-1.))*(1-it) + it] * args.time, label='upper bound')
+    #plt.boxplot(1-data, labels=list(xrange(1, args.time+1)))
+    #plt.plot(xrange(1, args.time+1), xrange(1./(args., args.time+1))
+
     LOG.info('plotting result')
     plt.figure()
     plt.rc('text', usetex=True)
@@ -182,15 +204,10 @@ if __name__ == '__main__':
     x = np.array(xrange(1, args.time+1))
     plt.plot(x, [1-np.median(data[:, i]) for i in xrange(data.shape[1])],
             label=r'median $SI$ over %s samples' %args.samples)
-    import pdb; pdb.set_trace() 
     plt.plot(x, approximateSI(args.n, args.hgtrate, args.indelrate, args.k, x),
             label=r'$\widetilde{SI}(G_0, G_t)$')
     plt.plot(x, estimateSI(args.n, args.hgtrate, args.indelrate, args.k, x),
             '--', label=r'$\widehat{SI}(G_0, G_t)$')
-    #it = estimateIndels(args.n, args.indelrate, args.time)
-    #plt.plot(x, [(1.-(2.*args.k*(1-it))/(args.n-1.))*(1-it) + it] * args.time, label='upper bound')
-    #plt.boxplot(1-data, labels=list(xrange(1, args.time+1)))
-    #plt.plot(xrange(1, args.time+1), xrange(1./(args., args.time+1))
     title = r''
     if args.hgtrate:
         title += r'HGT $\gamma=%s$' % args.hgtrate
