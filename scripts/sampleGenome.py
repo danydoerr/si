@@ -81,7 +81,7 @@ def __count_hits__(A, B, k):
     return s, hit_indel, s_comm
 
 def estimateIndels(n, mu, t):
-    """ \rho(t) """
+    """ 1-\rho(t) """
     return 1-(1-float(mu)/n)**t
 
 def si(A, B, k):
