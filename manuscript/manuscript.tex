@@ -45,7 +45,7 @@ and $G_y$, which is defined as follows:
 \noindent where
 
 \[\mathcal I_{k}(g, g', G):= \begin{cases} 0 & \textrm{if } g' \not\in G\\
-    0 & \textrm{if } g \not\in G[p_G(g')-k-1,p_G(g')+k] \\
+    0 & \textrm{if } g \not\in G[p_G(g')-k,p_G(g')+k] \\
     1 & \textrm{otherwise} \end{cases}
 \]
 
@@ -162,21 +162,22 @@ average number of $\mu$ indel events that are uniformly distributed over all
 $n$ positions, where $\mu$ is the \emph{indel rate} and corresponds to the rate
 of a Poisson process. Then, the probability of a gene not being modified by any
 indel event in time interval $[0, t]$ is given by $\rho(t) :=
-(1-\frac{\mu}{n})^t$.  Let the synteny index $\mathit{si}(p, t)$ of a position
-$p$ at time $t$ be denoted as follows:
+(1-\frac{\mu}{n})^t$.  Let the average synteny index $\mathit{si}(p, t)$ of a
+position $p$ at time $t$ be denoted as follows:
 
 \begin{equation}
     \mathit{si}(p,t) = \begin{cases} 0 & \textrm{if $p$ hosts an indel gene}\\
-        2k(1-\rho(t)) & \textrm{otherwise,} \end{cases}
+        2k\rho(t) & \textrm{otherwise,} \end{cases}
 \end{equation}
 
-\noindent Consequently, the expected synteny index of a position is $E(si(p,t))
-= 0 \cdot \rho(t) + 2k(1-\rho(t))^2$.  This already leads to a first approximation
-of the SI distance at time step $t$ between the initial genome $G_0$ and genome
-$G_t$:
+\noindent Consequently, multiplying the two cases by their respective
+probabilities of occurrence, we obtain the overall expected synteny index of a
+position $E(si(p,t)) = 0 \cdot (1-\rho(t)) + 2k\rho(t)^2$.  This already leads
+to a first approximation of the SI distance at time step $t$ between the initial
+genome $G_0$ and genome $G_t$:
 
 \begin{equation}
-    \widetilde{SI}(G_x, G_y) = 1-\frac{2k(1-\rho(t))^2n}{2kn} = 1-(1-\rho(t))^2
+    \widetilde{SI}(G_x, G_y) = 1-\frac{2k\rho(t)^2n}{2kn} = 1-\rho(t)^2
 \end{equation}
 
 Consider the increase of the SI distance from time point $t=0$ to $t' :=
@@ -232,7 +233,7 @@ events, as demonstrated in Figure~\ref{fig:si_distance_hgtindel}:
 
 \begin{equation}
     \underline{SI}(t) = \left(1-e^{-\frac{3\gamma+2\mu}{n}t}\right)
-    \left(1-\frac{2k(1-\rho(t))}{n-1}\right)
+    \left(1-\frac{2k\rho(t)}{n-1}\right)
 \end{equation}
 
 \begin{figure}[tb]
