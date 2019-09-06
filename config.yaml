@@ -1,0 +1,13 @@
+# PLEASE ADJUST THE FOLLOWING PARAMETERS --------------------------------------
+#
+
+alf_bin: /prj/tools/biotools/alf/bin/alfsim
+no_genes: [1000]
+no_species: 15
+pams: [10, 50, 100, 150, 200]
+si_k_neighborhood: [10, 100, 200]
+
+#
+# DON'T TOUCH UNLESS YOU KNOW WHAT YOU'RE DOING -------------------------------
+script_dir: scripts
+
