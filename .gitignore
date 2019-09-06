@@ -1,2 +1,7 @@
 **/*.log
+alf_data/**
+distances/**
+genomes/**
 manuscript/*.aux
+results/**
+trees/**
