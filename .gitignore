@@ -5,3 +5,6 @@ genomes/**
 manuscript/*.aux
 results/**
 trees/**
+**/.*.swp
+.snakemake/**
+scripts/*.pyc
