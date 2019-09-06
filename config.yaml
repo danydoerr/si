@@ -6,6 +6,8 @@ no_genes: [1000]
 no_species: 15
 pams: [10, 50, 100, 150, 200]
 si_k_neighborhood: [10, 100, 200]
+no_repeats: 10
+transposition_rate: 0.0001
 
 #
 # DON'T TOUCH UNLESS YOU KNOW WHAT YOU'RE DOING -------------------------------
