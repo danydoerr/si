@@ -2,12 +2,12 @@
 #
 
 alf_bin: /prj/tools/biotools/alf/bin/alfsim
-no_genes: [1000]
-no_species: 15
-pams: [10, 50, 100, 150, 200]
-si_k_neighborhood: [10, 100, 200]
+no_genes: [500]
+no_species: 10
+pams: [10, 100, 200, 300, 400]
+si_k_neighborhood: [5, 10, 50]
 no_repeats: 10
-transposition_rate: 0.0001
+transposition_rate: 0.001
 
 #
 # DON'T TOUCH UNLESS YOU KNOW WHAT YOU'RE DOING -------------------------------
