@@ -80,7 +80,7 @@ rule construct_distance_matrices:
     log:
         'logs/si_matrix_{alf_simul}_k{si_k}_r{no_repeats}.log'
     shell:
-        '%s/si_matrix.py {input} {wildcards.si_k} > {output}' %SCRIPT_DIR
+        '%s/si_matrix.py {input} {wildcards.si_k} > {output} 2> {log}' %SCRIPT_DIR
 
 
 rule construct_tree:
