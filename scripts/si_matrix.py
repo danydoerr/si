@@ -42,7 +42,7 @@ def constructSIDistMat(genomes, k, lam):
 
     for i, j in combinations(xrange(len(genomes)), 2):
         x = si(genomes[i], genomes[j], k)
-        val = inverseSI(x, lam, n, k)
+        val = inverseSI(1-x, lam, n, k)
         res[i, j] = res[j, i] = val
     return res
 
