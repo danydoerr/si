@@ -33,7 +33,7 @@ rule balanced_generate_tree:
         no_species = '{no_species}',
         edge_len   = '{edge_len}'
     output:
-        'etc/balanced_tree_s{no_species}_l{edge_len}.nwk'
+        'etc/true_tree_s{no_species}_l{edge_len}.nwk'
     shell:
         '%s/gen-balanced-tree.sh {params.no_species} ' %SCRIPT_DIR +
         '{params.edge_len} > {output}'
@@ -42,7 +42,7 @@ rule balanced_generate_tree:
 rule copy_alf_conf:
     input:
         conf = ALF_CONF,
-        tree_file = 'etc/balanced_tree_s{no_species}_l%s.nwk' %TREE_EDGE_LEN
+        tree_file = 'trees/true_tree_s{no_species}_l%s.nwk' %TREE_EDGE_LEN
     output:
         '%s/s{no_species}_n{no_genes}_pam{pam,[^/]+}/{no_repeat,\d+}.drw' %SIM_DATA_DIR
     shell:
