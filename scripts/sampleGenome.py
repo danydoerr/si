@@ -13,7 +13,7 @@ if not os.environ.get('DISPLAY', None):
 from matplotlib import pylab as plt
 import numpy as np
 
-NEWTON_MAX_ITER = 100000 
+NEWTON_MAX_ITER = 100000
 
 LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.DEBUG)
@@ -57,7 +57,7 @@ def countHits(A, B, k):
     genome A w.r.t. genome B """
 
     g2pos = [-1] * (max(max(A), max(B))+1)
-    
+
     for i, g in enumerate(A):
         g2pos[g] = i
 
@@ -101,7 +101,7 @@ def si(A, B, k):
 def estimateSI(n, mu, k, t):
     """ \widetilde{SI} """
     return (1-np.exp(-3./n*t)) * (1-2.*k/(n-1)*(np.exp(-3./n*mu*t)))
-    #return (1-np.exp(-(3*lam+2.*mu)*t/n)) 
+    #return (1-np.exp(-(3*lam+2.*mu)*t/n))
 
 
 def derivativeSI(n, mu, k, t):
@@ -116,7 +116,7 @@ def sndDerivativeSI(n, lam, mu, k, t):
             np.exp(-3./n*(lam+2.*mu)*t)
 
 def inverseSI(si, mu, n, k):
-    
+
     fix_der = lambda t: derivativeSI(n, mu, k, t)
     fix_snd = lambda t: sndDerivativeSI(n, mu, k, t)
     fix_est = lambda t: estimateSI(n, mu, k, t) - si
@@ -129,19 +129,20 @@ def inverseSI(si, mu, n, k):
     t = newton(fix_est, n*si, maxiter=NEWTON_MAX_ITER)
     return t
 
-def inverseSIHgtOnly(si, mu, n, k):
-    
-    return -n/(3.*(1.-mu)) * np.log(1.-si/(1-2.*k/(n-1)))
+def inverseSIHgtOnly(si, lam, n, k):
+
+    x = max(0, 1.-si/(1-2.*k/(n-1)))
+    return min(-n/((1-lam)*(3.-(5.*k)/(n-1))) * np.log(x), 6*n)
 
 def evolve(genome, indel_ratio, time, c):
     """ evolves a genome along evolutionary time according to the given rates of
     HGT and indel events.
-    
+
     The last parameter "c" denotes the next unused gene family ID count and is
     necessary to ensure that only new gene families are inserted in indel
     events.
 
-    The method yields after every time step. 
+    The method yields after every time step.
     """
 
     orig = c-1
@@ -173,7 +174,7 @@ def runExperiment(n, samples, time, indel_ratio, k):
     data = np.empty((samples, time), dtype=float)
     LOG.info(('sampling %s genomes of size %s over %s mutational ' + \
             'steps...') %(samples, n, time))
-    
+
     new_indels = np.empty(time)
     new_indels[0] = 0
     for s in xrange(samples):
@@ -187,7 +188,7 @@ def runExperiment(n, samples, time, indel_ratio, k):
             if t-1:
                 new_indels[t-1] = new_indels[t-2]
             new_indels[t-1] += new_indel_events
-   
+
     return data, new_indels
 
 
@@ -205,7 +206,7 @@ if __name__ == '__main__':
             help='whether or not the evolutionary distance should be estimated')
     args = parser.parse_args()
 
-     
+
     # setup logging
     ch = logging.StreamHandler(stderr)
     ch.setLevel(logging.INFO)
@@ -225,12 +226,12 @@ if __name__ == '__main__':
 
         data_i, new_indels = runExperiment(args.n, args.samples, args.time,
                 args.indelratio, k)
-    
+
         LOG.info('plotting result')
         ext = len(args.k) > 1 and ' for $k = %s$' %k or ''
         plt.plot(x, [1-np.median(data_i[:, z]) for z in xrange(data_i.shape[1])],
                 color = 'C%s' %i, label=r'median SI%s' %ext)
-        plt.plot(x, estimateSI(args.n, args.indelratio, k, x), '--', 
+        plt.plot(x, estimateSI(args.n, args.indelratio, k, x), '--',
                 color='C%s' %i, label=r'$si%s(t)$%s' %(args.indelratio and '\''
                     or '', ext))
 
@@ -271,7 +272,7 @@ if __name__ == '__main__':
             plt.plot(x, medians, color='C%s' %i, label = r'median $\hat t$%s' %ext)
             plt.plot(x, upper_q, '-.', color = 'C%s' %i, label = r'$0.95\%%$ quantile%s' %ext)
             plt.plot(x, lower_q, ':', color = 'C%s' %i, label = r'$0.05\%%$ quantile%s' %ext)
-        
+
         plt.plot(x, x, color='C%s' %len(args.k), label='true distance')
         plt.title(title)
         plt.legend(loc='upper right')
