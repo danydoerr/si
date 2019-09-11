@@ -22,8 +22,6 @@ scaleTree := true:
 
 # parameters concerning the substitution models
 substModels := [SubstitutionModel('WAG')];
-indelModels := [IndelModel(0.0003, ZIPF, [1.821], 50)];
-rateVarModels := [RateVarModel(Gamma, 5, 0.01, 1)];
 modelAssignments := [1]:
 modelSwitchS := [[1]]:
 modelSwitchD := [[1]]:
