@@ -17,13 +17,15 @@ SIM_DATA_DIR    = config.get('simulation_data_dir', 'alf_data')
 SI_K            = config.get('si_k_neighborhood', [10])
 TP_RATE         = config.get('transposition_rate', 0.01)
 TREE_DIR        = config.get('tree_dir', 'trees')
-TREE_EDGE_LEN   = config.get('tree_edge_length', 1)
 
 rule all:
     input:
-        expand('%s/s{no_species}_n{no_genes}_pam{pam}_k{si_k}/{no_repeats}.txt' %
+        expand('%s/s{no_species}_n{no_genes}_pam{pam}/si_k{si_k}/{no_repeats}.txt' %
                 RESULT_DIR, no_species = NO_SPECIES, no_genes = NO_GENES, pam =
                 PAMS, si_k=SI_K, no_repeats = range(REPEATS)),
+#        expand('%s/s{no_species}_n{no_genes}_pam{pam}/grappa/{no_repeats}.txt' %
+#                RESULT_DIR, no_species = NO_SPECIES, no_genes = NO_GENES, pam =
+#                PAMS, no_repeats = range(REPEATS)),
         expand('%s/boxplot_s{no_species}_n{no_genes}.pdf' %RESULT_DIR,
                 no_species = NO_SPECIES, no_genes = NO_GENES)
 
@@ -31,18 +33,25 @@ rule all:
 rule balanced_generate_tree:
     params:
         no_species = '{no_species}',
-        edge_len   = '{edge_len}'
     output:
-        'etc/true_tree_s{no_species}_l{edge_len}.nwk'
+        temp('trees/true_tree_s{no_species,\d+}.nwk')
     shell:
-        '%s/gen-balanced-tree.sh {params.no_species} ' %SCRIPT_DIR +
-        '{params.edge_len} > {output}'
+        '%s/gen-balanced-tree.sh {params.no_species} 1 ' %SCRIPT_DIR +
+        '> {output}'
 
+
+rule rescale_tree:
+    input:
+        'trees/true_tree_s{no_species}.nwk'
+    output:
+        'trees/true_tree_s{no_species}_pam{pam,\d+}.nwk'
+    shell:
+        '%s/rescale.py -a{wildcards.pam} {input} > {output}' %SCRIPT_DIR
 
 rule copy_alf_conf:
     input:
         conf = ALF_CONF,
-        tree_file = 'trees/true_tree_s{no_species}_l%s.nwk' %TREE_EDGE_LEN
+        tree_file = 'trees/true_tree_s{no_species}_pam{pam}.nwk'
     output:
         '%s/s{no_species}_n{no_genes}_pam{pam,[^/]+}/{no_repeat,\d+}.drw' %SIM_DATA_DIR
     shell:
@@ -98,7 +107,7 @@ rule construct_distance_matrices:
     input:
         '%s/{alf_simul}/{no_repeats}.fa' %GENOME_DIR
     output:
-        '%s/{alf_simul}_k{si_k}/{no_repeats,\d+}.csv' %DISTMAT_DIR
+        '%s/{alf_simul}/si_k{si_k,\d+}/{no_repeats,\d+}.csv' %DISTMAT_DIR
     log:
         'logs/si_matrix_{alf_simul}_k{si_k}_r{no_repeats}.log'
     shell:
@@ -120,10 +129,10 @@ rule construct_tree:
 
 rule compare_with_true_tree:
     input:
-        inferred = '%s/{alf_simul}_k{si_k}/{no_repeats}.nwk' %TREE_DIR,
+        inferred = '%s/{alf_simul}/{subdir}/{no_repeats}.nwk' %TREE_DIR,
         real =  '%s/{alf_simul}/{no_repeats}/RealTree.nwk' %SIM_DATA_DIR
     output:
-        '%s/{alf_simul}_k{si_k}/{no_repeats,\d+}.txt' %RESULT_DIR
+        '%s/{alf_simul}/{subdir,[^/]+}/{no_repeats,\d+}.txt' %RESULT_DIR
     run:
         from dendropy import Tree, TaxonNamespace
         from dendropy.calculate import treecompare
@@ -133,28 +142,29 @@ rule compare_with_true_tree:
                 taxon_namespace=tns)
         T1 = Tree.get(file=open(input[1]), schema='Newick',
                 taxon_namespace=tns)
+        #fp, fn = treecompare.false_positives_and_negatives(T0, T1)
         print(treecompare.symmetric_difference(T0, T1), file = open(output[0],
             'w'))
 
 rule combine_into_results_table:
     input:
-        expand('%s/s{no_species}_n{no_genes}_pam{pam}_k{si_k}/{no_repeats}.txt' %
+        expand('%s/s{no_species}_n{no_genes}_pam{pam}/si_k{si_k}/{no_repeats}.txt' %
                 RESULT_DIR, no_species = NO_SPECIES, no_genes = NO_GENES, pam =
                 PAMS, si_k=SI_K, no_repeats = range(REPEATS))
     output:
-        temp('%s/results.csv' %RESULT_DIR)
+        temp('%s/results_si.csv' %RESULT_DIR)
     run:
         out = open(output[0], 'w')
         for x in product((RESULT_DIR,), (NO_SPECIES,), NO_GENES, PAMS, SI_K,
                 range(REPEATS)):
-            val = int(open('%s/s%s_n%s_pam%s_k%s/%s.txt' %x).read())
+            val = int(open('%s/s%s_n%s_pam%s/si_k%s/%s.txt' %x).read())
             print('\t'.join(map(str, x[1:] + (val, ))), file=out)
         out.close()
 
 
 rule plot_performance:
     input:
-        '%s/results.csv' %RESULT_DIR
+        '%s/results_si.csv' %RESULT_DIR
     output:
         expand('%s/boxplot_s{no_species}_n{no_genes}.pdf' %RESULT_DIR,
                 no_species = NO_SPECIES, no_genes = NO_GENES)
@@ -176,7 +186,7 @@ rule plot_performance:
                     res = data[(data[:, 0] == s) & (data[:, 1] == g) &
                             (data[:, 3] == k), :]
                     time = sorted(set(res[:, 2]))
-                    rf_dist = list(np.median(res[res[:, 2] == t, -1]) for t in
+                    rf_dist = list(np.mean(res[res[:, 2] == t, -1]) for t in
                             time)
                     ax = plt.plot(time, rf_dist, color='C%s' %i, label =
                             'k = %s'%int(k))
@@ -188,4 +198,24 @@ rule plot_performance:
                 plt.ylabel('RF distance to true tree')
                 plt.savefig('%s/boxplot_s%s_n%s.pdf' %(RESULT_DIR, int(s),
                     int(g)), format='pdf')
+
+rule run_grappa:
+    input:
+        '%s/{alf_simul}/{no_repeats}.fa' %GENOME_DIR
+    output:
+        '%s/{alf_simul}/grappa/{no_repeats}.out' %TREE_DIR
+    log:
+        'logs/grappa_{alf_simul}_r{no_repeats}.log' 
+    shell:
+        '%s/run_grappa.sh {input} > {output} 2> {log}' %SCRIPT_DIR
+
+
+rule extract_grappa_tree:
+    input:
+        '%s/{alf_simul}/grappa/{no_repeats}.out' %TREE_DIR
+    output:
+        '%s/{alf_simul}/grappa/{no_repeats}.nwk' %TREE_DIR
+    shell:
+        'grep -e \'^\s\?([0-9SE:,()]\+);$\' {input} | tail -n1 > {output}'
+
 

@@ -2,6 +2,7 @@
 
 TAXA_NO="$1"
 EXTEDG="$2"
+INT_EDG_RATIO="1"
 CHECK_INT1=`echo "$TAXA_NO" | egrep "^[0-9]+$"`
 CHECK_FLOAT1=`echo "$EXTEDG" | egrep "^[0-9]+(\.[0-9]*)?$"`
 
@@ -108,7 +109,7 @@ function rec_construct_tree {
 TAXA=`seq -s ',' 1 $TAXA_NO`
 NEWICK_TREE=`rec_construct_tree $TAXA_NO "$TAXA" 1` 
 # give a gradient of different edge lengths
-INTEDG=`bc <<< "scale=4; $EXTEDG / 5"`
+INTEDG=`bc <<< "scale=4; $EXTEDG / $INT_EDG_RATIO"`
 INTEDG=`appendZero $INTEDG`
 HLFEDG=`bc <<< "scale=4; $INTEDG / 2"`
 HLFEDG=`appendZero $HLFEDG`

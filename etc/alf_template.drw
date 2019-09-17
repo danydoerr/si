@@ -16,8 +16,7 @@ minGeneLength := 1;
 
 # parameters concerning the species tree
 treeType := 'Custom':
-mutRate := {PAM}:        # PAM distance from origin to recent species (for random trees)
-scaleTree := true: 
+scaleTree := false: 
 treeFile := '{TREE_FILE}':
 #treeType := 'ToLSample':
 #mutRate := {PAM}:        # PAM distance from origin to recent species (for random trees)
