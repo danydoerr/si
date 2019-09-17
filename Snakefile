@@ -17,17 +17,17 @@ SIM_DATA_DIR    = config.get('simulation_data_dir', 'alf_data')
 SI_K            = config.get('si_k_neighborhood', [10])
 TP_RATE         = config.get('transposition_rate', 0.01)
 TREE_DIR        = config.get('tree_dir', 'trees')
+UNIMOG_JAR      = config.get('unimog_jar', '')
 
 rule all:
     input:
-        expand('%s/s{no_species}_n{no_genes}_pam{pam}/si_k{si_k}/{no_repeats}.txt' %
-                RESULT_DIR, no_species = NO_SPECIES, no_genes = NO_GENES, pam =
-                PAMS, si_k=SI_K, no_repeats = range(REPEATS)),
+        expand('%s/results_si_k{si_k}.csv' %RESULT_DIR, si_k=SI_K),
+        '%s/results_dcj.csv' %RESULT_DIR,
 #        expand('%s/s{no_species}_n{no_genes}_pam{pam}/grappa/{no_repeats}.txt' %
 #                RESULT_DIR, no_species = NO_SPECIES, no_genes = NO_GENES, pam =
 #                PAMS, no_repeats = range(REPEATS)),
-        expand('%s/boxplot_s{no_species}_n{no_genes}.pdf' %RESULT_DIR,
-                no_species = NO_SPECIES, no_genes = NO_GENES)
+#        expand('%s/boxplot_s{no_species}_n{no_genes}.pdf' %RESULT_DIR,
+#                no_species = NO_SPECIES, no_genes = NO_GENES)
 
 
 rule balanced_generate_tree:
@@ -103,7 +103,7 @@ rule construct_gene_orders:
         '%s/vp_to_dists.py {input.HP} > {output}' %SCRIPT_DIR
 
 
-rule construct_distance_matrices:
+rule construct_distance_matrices_si:
     input:
         '%s/{alf_simul}/{no_repeats}.fa' %GENOME_DIR
     output:
@@ -114,7 +114,91 @@ rule construct_distance_matrices:
         '%s/si_matrix.py {input} {wildcards.si_k} > {output} 2> {log}' %SCRIPT_DIR
 
 
-rule construct_tree:
+rule unimog_extract_phylip_distmat:
+    input:
+        '%s/{alf_simul}/dcj/{no_repeats}.out' %DISTMAT_DIR
+    output:
+        temp('%s/{alf_simul}/dcj/{no_repeats}.phylip' %DISTMAT_DIR)
+    run:
+        is_distmat = 0
+        out = open(output[0], 'w')
+        data = open(input[0])
+        for line in data:
+            if is_distmat:
+                if not line.strip():
+                    if is_distmat > 1:
+                        break
+                    is_distmat += 1
+                    continue
+                else:
+                    out.write(line)
+            if line.find('PHYLIP') >= 0:
+                is_distmat = 1
+        out.close()
+        data.close()
+
+
+rule phylip_to_csv:
+    input:
+        '%s/{alf_simul}.phylip' %DISTMAT_DIR
+    output:
+        '%s/{alf_simul}.csv' %DISTMAT_DIR
+    run:
+        from dendropy import PhylogeneticDistanceMatrix as PDM
+        import numpy as np
+
+        # read matrix in phylip format
+        data = open(input[0])
+        D = None
+        taxa = list()
+        for line in data:
+            if line.strip().isdigit():
+                D = np.zeros((int(line), int(line)))
+                continue
+            els = line.split()
+            taxa.append(els[0])
+            for i, val in enumerate(els[1:]):
+                D[i, len(taxa)-1] = D[len(taxa)-1, i] = float(val)
+        data.close()
+
+        # write CSV file
+        out = open(output[0], 'w')
+        print('\t'.join(chain(('', ), taxa)), file=out)
+        for i, name in enumerate(taxa):
+            print('\t'.join(chain((name, ), map(str, D[i, :]))), file=out)
+        out.close()
+
+
+rule run_grappa:
+    input:
+        '%s/{alf_simul}/{no_repeats}.fa' %GENOME_DIR
+    output:
+        '%s/{alf_simul}/grappa/{no_repeats}.out' %TREE_DIR
+    log:
+        'logs/grappa_{alf_simul}_r{no_repeats}.log'
+    shell:
+        '%s/run_grappa.sh {input} > {output} 2> {log}' %SCRIPT_DIR
+
+
+rule extract_grappa_tree:
+    input:
+        '%s/{alf_simul}/grappa/{no_repeats}.out' %TREE_DIR
+    output:
+        '%s/{alf_simul}/grappa/{no_repeats}.nwk' %TREE_DIR
+    shell:
+        'grep -e \'^\s\?([0-9SE:,()]\+);$\' {input} | tail -n1 > {output}'
+
+
+rule run_dcj:
+    input:
+        '%s/{alf_simul}/{no_repeats}.fa' %GENOME_DIR
+    output:
+        '%s/{alf_simul}/dcj/{no_repeats}.out' %DISTMAT_DIR
+    shell:
+        'java -jar %s -m=1 {input} > {output}' %UNIMOG_JAR
+
+
+rule construct_tree_si:
     input:
         '%s/{alf_simul}.csv' %DISTMAT_DIR
     output:
@@ -146,25 +230,27 @@ rule compare_with_true_tree:
         print(treecompare.symmetric_difference(T0, T1), file = open(output[0],
             'w'))
 
+
 rule combine_into_results_table:
     input:
-        expand('%s/s{no_species}_n{no_genes}_pam{pam}/si_k{si_k}/{no_repeats}.txt' %
+        expand('%s/s{no_species}_n{no_genes}_pam{pam}/{{subdir}}/{no_repeats}.txt' %
                 RESULT_DIR, no_species = NO_SPECIES, no_genes = NO_GENES, pam =
                 PAMS, si_k=SI_K, no_repeats = range(REPEATS))
     output:
-        temp('%s/results_si.csv' %RESULT_DIR)
+        '%s/results_{subdir}.csv' %RESULT_DIR
     run:
         out = open(output[0], 'w')
-        for x in product((RESULT_DIR,), (NO_SPECIES,), NO_GENES, PAMS, SI_K,
-                range(REPEATS)):
-            val = int(open('%s/s%s_n%s_pam%s/si_k%s/%s.txt' %x).read())
-            print('\t'.join(map(str, x[1:] + (val, ))), file=out)
+        for x in product((RESULT_DIR,), (NO_SPECIES,), NO_GENES, PAMS,
+                (wildcards.subdir,), range(REPEATS)):
+            val = int(open('%s/s%s_n%s_pam%s/%s/%s.txt' %x).read())
+            print('\t'.join(map(str, x[1:4] + res[5:] + (val, ))), file=out)
         out.close()
 
 
 rule plot_performance:
     input:
-        '%s/results_si.csv' %RESULT_DIR
+        expand('%s/results_si_k{k}.csv' %RESULT_DIR, k = SI_K),
+        '%s/results_dcj.csv' %RESULT_DIR,
     output:
         expand('%s/boxplot_s{no_species}_n{no_genes}.pdf' %RESULT_DIR,
                 no_species = NO_SPECIES, no_genes = NO_GENES)
@@ -198,24 +284,4 @@ rule plot_performance:
                 plt.ylabel('RF distance to true tree')
                 plt.savefig('%s/boxplot_s%s_n%s.pdf' %(RESULT_DIR, int(s),
                     int(g)), format='pdf')
-
-rule run_grappa:
-    input:
-        '%s/{alf_simul}/{no_repeats}.fa' %GENOME_DIR
-    output:
-        '%s/{alf_simul}/grappa/{no_repeats}.out' %TREE_DIR
-    log:
-        'logs/grappa_{alf_simul}_r{no_repeats}.log' 
-    shell:
-        '%s/run_grappa.sh {input} > {output} 2> {log}' %SCRIPT_DIR
-
-
-rule extract_grappa_tree:
-    input:
-        '%s/{alf_simul}/grappa/{no_repeats}.out' %TREE_DIR
-    output:
-        '%s/{alf_simul}/grappa/{no_repeats}.nwk' %TREE_DIR
-    shell:
-        'grep -e \'^\s\?([0-9SE:,()]\+);$\' {input} | tail -n1 > {output}'
-
 
