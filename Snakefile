@@ -23,11 +23,11 @@ rule all:
     input:
         expand('%s/results_si_k{si_k}.csv' %RESULT_DIR, si_k=SI_K),
         '%s/results_dcj.csv' %RESULT_DIR,
+        expand('%s/boxplot_s{no_species}_n{no_genes}.pdf' %RESULT_DIR,
+                no_species = NO_SPECIES, no_genes = NO_GENES)
 #        expand('%s/s{no_species}_n{no_genes}_pam{pam}/grappa/{no_repeats}.txt' %
 #                RESULT_DIR, no_species = NO_SPECIES, no_genes = NO_GENES, pam =
 #                PAMS, no_repeats = range(REPEATS)),
-#        expand('%s/boxplot_s{no_species}_n{no_genes}.pdf' %RESULT_DIR,
-#                no_species = NO_SPECIES, no_genes = NO_GENES)
 
 
 rule balanced_generate_tree:
@@ -114,59 +114,67 @@ rule construct_distance_matrices_si:
         '%s/si_matrix.py {input} {wildcards.si_k} > {output} 2> {log}' %SCRIPT_DIR
 
 
-rule unimog_extract_phylip_distmat:
+rule run_dcj:
     input:
-        '%s/{alf_simul}/dcj/{no_repeats}.out' %DISTMAT_DIR
+        '%s/{alf_simul}/{no_repeats}.fa' %GENOME_DIR
     output:
-        temp('%s/{alf_simul}/dcj/{no_repeats}.phylip' %DISTMAT_DIR)
-    run:
-        is_distmat = 0
-        out = open(output[0], 'w')
-        data = open(input[0])
-        for line in data:
-            if is_distmat:
-                if not line.strip():
-                    if is_distmat > 1:
-                        break
-                    is_distmat += 1
-                    continue
-                else:
-                    out.write(line)
-            if line.find('PHYLIP') >= 0:
-                is_distmat = 1
-        out.close()
-        data.close()
+        '%s/{alf_simul}/dcj/{no_repeats}.csv' %DISTMAT_DIR
+    shell:
+        '%s/compute_dcj.py {input} > {output}' %SCRIPT_DIR
 
-
-rule phylip_to_csv:
-    input:
-        '%s/{alf_simul}.phylip' %DISTMAT_DIR
-    output:
-        '%s/{alf_simul}.csv' %DISTMAT_DIR
-    run:
-        from dendropy import PhylogeneticDistanceMatrix as PDM
-        import numpy as np
-
-        # read matrix in phylip format
-        data = open(input[0])
-        D = None
-        taxa = list()
-        for line in data:
-            if line.strip().isdigit():
-                D = np.zeros((int(line), int(line)))
-                continue
-            els = line.split()
-            taxa.append(els[0])
-            for i, val in enumerate(els[1:]):
-                D[i, len(taxa)-1] = D[len(taxa)-1, i] = float(val)
-        data.close()
-
-        # write CSV file
-        out = open(output[0], 'w')
-        print('\t'.join(chain(('', ), taxa)), file=out)
-        for i, name in enumerate(taxa):
-            print('\t'.join(chain((name, ), map(str, D[i, :]))), file=out)
-        out.close()
+#rule unimog_extract_phylip_distmat:
+#    input:
+#        '%s/{alf_simul}/dcj/{no_repeats}.out' %DISTMAT_DIR
+#    output:
+#        temp('%s/{alf_simul}/dcj/{no_repeats}.phylip' %DISTMAT_DIR)
+#    run:
+#        is_distmat = 0
+#        out = open(output[0], 'w')
+#        data = open(input[0])
+#        for line in data:
+#            if is_distmat:
+#                if not line.strip():
+#                    if is_distmat > 1:
+#                        break
+#                    is_distmat += 1
+#                    continue
+#                else:
+#                    out.write(line)
+#            if line.find('PHYLIP') >= 0:
+#                is_distmat = 1
+#        out.close()
+#        data.close()
+#
+#
+#rule phylip_to_csv:
+#    input:
+#        '%s/{alf_simul}.phylip' %DISTMAT_DIR
+#    output:
+#        '%s/{alf_simul}.csv' %DISTMAT_DIR
+#    run:
+#        from dendropy import PhylogeneticDistanceMatrix as PDM
+#        import numpy as np
+#
+#        # read matrix in phylip format
+#        data = open(input[0])
+#        D = None
+#        taxa = list()
+#        for line in data:
+#            if line.strip().isdigit():
+#                D = np.zeros((int(line), int(line)), dtype=int)
+#                continue
+#            els = line.split()
+#            taxa.append(els[0])
+#            for i, val in enumerate(els[1:]):
+#                D[i, len(taxa)-1] = D[len(taxa)-1, i] = float(val)
+#        data.close()
+#
+#        # write CSV file
+#        out = open(output[0], 'w')
+#        print('\t'.join(chain(('', ), taxa)), file=out)
+#        for i, name in enumerate(taxa):
+#            print('\t'.join(chain((name, ), map(str, D[i, :]))), file=out)
+#        out.close()
 
 
 rule run_grappa:
@@ -189,13 +197,13 @@ rule extract_grappa_tree:
         'grep -e \'^\s\?([0-9SE:,()]\+);$\' {input} | tail -n1 > {output}'
 
 
-rule run_dcj:
-    input:
-        '%s/{alf_simul}/{no_repeats}.fa' %GENOME_DIR
-    output:
-        '%s/{alf_simul}/dcj/{no_repeats}.out' %DISTMAT_DIR
-    shell:
-        'java -jar %s -m=1 {input} > {output}' %UNIMOG_JAR
+#rule run_dcj:
+#    input:
+#        '%s/{alf_simul}/{no_repeats}.fa' %GENOME_DIR
+#    output:
+#        '%s/{alf_simul}/dcj/{no_repeats}.out' %DISTMAT_DIR
+#    shell:
+#        'java -Xmx10g -jar %s -m=1 {input} > {output}' %UNIMOG_JAR
 
 
 rule construct_tree_si:
@@ -243,7 +251,7 @@ rule combine_into_results_table:
         for x in product((RESULT_DIR,), (NO_SPECIES,), NO_GENES, PAMS,
                 (wildcards.subdir,), range(REPEATS)):
             val = int(open('%s/s%s_n%s_pam%s/%s/%s.txt' %x).read())
-            print('\t'.join(map(str, x[1:4] + res[5:] + (val, ))), file=out)
+            print('\t'.join(map(str, x[1:4] + x[5:] + (val, ))), file=out)
         out.close()
 
 
@@ -262,26 +270,33 @@ rule plot_performance:
         import matplotlib.pylab as plt
         import numpy as np
 
-        data = np.loadtxt(input[0])
-        for s in set(data[:, 0]):
-            for g in set(data[:, 1]):
-                title = '#species = %s, #genes = %s' %(int(s), int(g))
-                plt.figure()
-                legend_axs = list()
-                for i, k in enumerate(sorted(set(data[:, 3]))):
-                    res = data[(data[:, 0] == s) & (data[:, 1] == g) &
-                            (data[:, 3] == k), :]
-                    time = sorted(set(res[:, 2]))
-                    rf_dist = list(np.mean(res[res[:, 2] == t, -1]) for t in
-                            time)
-                    ax = plt.plot(time, rf_dist, color='C%s' %i, label =
-                            'k = %s'%int(k))
-                    legend_axs.append(ax)
-                plt.ylim([0, np.max(data[:, -1])])
-                plt.title(title)
-                plt.legend(loc='upper right')
-                plt.xlabel('PAM')
-                plt.ylabel('RF distance to true tree')
-                plt.savefig('%s/boxplot_s%s_n%s.pdf' %(RESULT_DIR, int(s),
-                    int(g)), format='pdf')
+        for s, g in product(hasattr(NO_SPECIES, '__iter__') and NO_SPECIES or
+                (NO_SPECIES, ), NO_GENES):
+            plt.figure()
+            title = '#species = %s, #genes = %s' %(s, g)
+            max_dist = 0
+            # plot SI distances for each choice of k
+            for i, k in enumerate(SI_K):
+                data = np.loadtxt('%s/results_si_k%s.csv' %(RESULT_DIR, k))
+                res = data[(data[:, 0] == s) & (data[:, 1] == g), :]
+                time = sorted(set(res[:, 2]))
+                rf_dist = list(np.mean(res[res[:, 2] == t, -1]) for t in time)
+                max_dist = max(max_dist, max(rf_dist))
+                plt.plot(time, rf_dist, color='C%s' %i, label = 'k = %s'%k)
+
+            # plot DCJ distances
+            data = np.loadtxt('%s/results_dcj.csv' %RESULT_DIR)
+            res = data[(data[:, 0] == s) & (data[:, 1] == g), :]
+            time = sorted(set(res[:, 2]))
+            rf_dist = list(np.mean(res[res[:, 2] == t, -1]) for t in time)
+            max_dist = max(max_dist, max(rf_dist))
+            plt.plot(time, rf_dist, color='C%s' %(i+1), label = 'd_{DCJ}')
+
+            plt.ylim([0, max_dist])
+            plt.title(title)
+            plt.legend(loc='upper right')
+            plt.xlabel('PAM')
+            plt.ylabel('RF distance to true tree')
+            plt.savefig('%s/boxplot_s%s_n%s.pdf' %(RESULT_DIR, s, g),
+                    format='pdf')
 
