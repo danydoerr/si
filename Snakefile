@@ -44,7 +44,7 @@ rule rescale_tree:
     input:
         'trees/true_tree_s{no_species}.nwk'
     output:
-        'trees/true_tree_s{no_species}_pam{pam,\d+}.nwk'
+        'trees/true_tree_s{no_species}_pam{pam,[0-9.]+}.nwk'
     shell:
         '%s/rescale.py -a{wildcards.pam} {input} > {output}' %SCRIPT_DIR
 
@@ -290,7 +290,7 @@ rule plot_performance:
             time = sorted(set(res[:, 2]))
             rf_dist = list(np.mean(res[res[:, 2] == t, -1]) for t in time)
             max_dist = max(max_dist, max(rf_dist))
-            plt.plot(time, rf_dist, color='C%s' %(i+1), label = 'd_{DCJ}')
+            plt.plot(time, rf_dist, color='C%s' %(i+1), label = 'DCJ')
 
             plt.ylim([0, max_dist])
             plt.title(title)
