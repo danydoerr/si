@@ -17,7 +17,6 @@ SIM_DATA_DIR    = config.get('simulation_data_dir', 'alf_data')
 SI_K            = config.get('si_k_neighborhood', [10])
 TP_RATE         = config.get('transposition_rate', 0.01)
 TREE_DIR        = config.get('tree_dir', 'trees')
-UNIMOG_JAR      = config.get('unimog_jar', '')
 
 rule all:
     input:
@@ -122,60 +121,6 @@ rule run_dcj:
     shell:
         '%s/compute_dcj.py {input} > {output}' %SCRIPT_DIR
 
-#rule unimog_extract_phylip_distmat:
-#    input:
-#        '%s/{alf_simul}/dcj/{no_repeats}.out' %DISTMAT_DIR
-#    output:
-#        temp('%s/{alf_simul}/dcj/{no_repeats}.phylip' %DISTMAT_DIR)
-#    run:
-#        is_distmat = 0
-#        out = open(output[0], 'w')
-#        data = open(input[0])
-#        for line in data:
-#            if is_distmat:
-#                if not line.strip():
-#                    if is_distmat > 1:
-#                        break
-#                    is_distmat += 1
-#                    continue
-#                else:
-#                    out.write(line)
-#            if line.find('PHYLIP') >= 0:
-#                is_distmat = 1
-#        out.close()
-#        data.close()
-#
-#
-#rule phylip_to_csv:
-#    input:
-#        '%s/{alf_simul}.phylip' %DISTMAT_DIR
-#    output:
-#        '%s/{alf_simul}.csv' %DISTMAT_DIR
-#    run:
-#        from dendropy import PhylogeneticDistanceMatrix as PDM
-#        import numpy as np
-#
-#        # read matrix in phylip format
-#        data = open(input[0])
-#        D = None
-#        taxa = list()
-#        for line in data:
-#            if line.strip().isdigit():
-#                D = np.zeros((int(line), int(line)), dtype=int)
-#                continue
-#            els = line.split()
-#            taxa.append(els[0])
-#            for i, val in enumerate(els[1:]):
-#                D[i, len(taxa)-1] = D[len(taxa)-1, i] = float(val)
-#        data.close()
-#
-#        # write CSV file
-#        out = open(output[0], 'w')
-#        print('\t'.join(chain(('', ), taxa)), file=out)
-#        for i, name in enumerate(taxa):
-#            print('\t'.join(chain((name, ), map(str, D[i, :]))), file=out)
-#        out.close()
-
 
 rule run_grappa:
     input:
@@ -195,15 +140,6 @@ rule extract_grappa_tree:
         '%s/{alf_simul}/grappa/{no_repeats}.nwk' %TREE_DIR
     shell:
         'grep -e \'^\s\?([0-9SE:,()]\+);$\' {input} | tail -n1 > {output}'
-
-
-#rule run_dcj:
-#    input:
-#        '%s/{alf_simul}/{no_repeats}.fa' %GENOME_DIR
-#    output:
-#        '%s/{alf_simul}/dcj/{no_repeats}.out' %DISTMAT_DIR
-#    shell:
-#        'java -Xmx10g -jar %s -m=1 {input} > {output}' %UNIMOG_JAR
 
 
 rule construct_tree_si:
