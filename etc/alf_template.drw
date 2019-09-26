@@ -39,3 +39,13 @@ invtrans := 0.0;
 #orthRep := 1;
 #lgtGRate := 0.000;
 #lgtGSize := 10;
+#
+#
+# parameters concerning gene loss
+geneLossRate := {LOSS_RATE};
+numberLoss := 1;
+
+geneDuplRate := {INSERTION_RATE};
+numberDupl := 1;
+transDupl := 1;
+
