@@ -17,6 +17,7 @@ LOG.setLevel(logging.DEBUG)
 
 def inverseSI(si, lam, n, k):
 
+    k = min(k, (n-2.)/2.)
     x = max(0, 1.-si/(1-2.*k/(n-1)))
     return min(-n/(lam*(3.-(5.*k)/(n-1))) * np.log(x), 6*n)
 
@@ -33,7 +34,7 @@ def readGenomes(data):
     return res
 
 
-def constructSIDistMat(genomes, k, lam):
+def constructSIDistMat(genomes, k, lam, do_raw=False):
 
     res = np.zeros((len(genomes), len(genomes)))
 
@@ -42,7 +43,9 @@ def constructSIDistMat(genomes, k, lam):
 
     for i, j in combinations(xrange(len(genomes)), 2):
         x = si(genomes[i], genomes[j], k)
-        val = inverseSI(1-x, lam, n, k)
+        val = 1-x
+        if not do_raw:
+            val = inverseSI(1-x, lam, n, k)
         res[i, j] = res[j, i] = val
     return res
 
@@ -63,6 +66,7 @@ if __name__ == '__main__':
             help = 'SI parameter \"neighborhood size\" k')
     parser.add_argument('-l', '--lambdda', type=float, default=1.0,
             help = 'SI parameter \"lambda\"')
+    parser.add_argument('-r', '--raw', action='store_true')
     args = parser.parse_args()
 
     # setup logging
@@ -75,7 +79,7 @@ if __name__ == '__main__':
     genomeNames, genomes = zip(*readGenomes(args.genomes))
 
     LOG.info('constructing distance matrix')
-    D = constructSIDistMat(genomes, args.k, args.lambdda)
+    D = constructSIDistMat(genomes, args.k, args.lambdda, do_raw=args.raw)
     LOG.info('writing matrix to standard out')
     writeDistMat(genomeNames, D, stdout)
     LOG.info('DONE')

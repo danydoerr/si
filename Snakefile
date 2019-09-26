@@ -16,12 +16,14 @@ RESULT_DIR      = config.get('result_dir', 'results')
 SIM_DATA_DIR    = config.get('simulation_data_dir', 'alf_data')
 SI_K            = config.get('si_k_neighborhood', [10])
 TP_RATE         = config.get('transposition_rate', 0.01)
+INSERTION_RATE  = config.get('insertion_rate', 0.0)
+LOSS_RATE       = config.get('loss_rate', 0.0)
 TREE_DIR        = config.get('tree_dir', 'trees')
 
 rule all:
     input:
         expand('%s/results_si_k{si_k}.csv' %RESULT_DIR, si_k=SI_K),
-        '%s/results_dcj.csv' %RESULT_DIR,
+#        '%s/results_dcj.csv' %RESULT_DIR,
         expand('%s/boxplot_s{no_species}_n{no_genes}.pdf' %RESULT_DIR,
                 no_species = NO_SPECIES, no_genes = NO_GENES)
 #        expand('%s/s{no_species}_n{no_genes}_pam{pam}/grappa/{no_repeats}.txt' %
@@ -61,7 +63,10 @@ rule copy_alf_conf:
         '-e \'s/{{NO_SPECIES}}/{wildcards.no_species}/\' '
         '-e \'s/{{NO_GENES}}/{wildcards.no_genes}/\' '
         '-e \"s/{{TREE_FILE}}/${{TREE_FILE}}/\" '
-        '-e \'s/{{TP_RATE}}/%s/\' {input.conf} > {output}' %TP_RATE
+        '-e \'s/{{TP_RATE}}/%s/\' ' %TP_RATE +
+        '-e \'s/{{INSERTION_RATE}}/%s/\' ' % INSERTION_RATE +
+        '-e \'s/{{LOSS_RATE}}/%s/\' '% LOSS_RATE +
+        '{input.conf} > {output}'
 
 
 rule run_alf:
@@ -111,6 +116,17 @@ rule construct_distance_matrices_si:
         'logs/si_matrix_{alf_simul}_k{si_k}_r{no_repeats}.log'
     shell:
         '%s/si_matrix.py {input} {wildcards.si_k} > {output} 2> {log}' %SCRIPT_DIR
+
+
+rule construct_distance_matrices_si_raw:
+    input:
+        '%s/{alf_simul}/{no_repeats}.fa' %GENOME_DIR
+    output:
+        '%s/{alf_simul}/si_k{si_k,\d+}_raw/{no_repeats,\d+}.csv' %DISTMAT_DIR
+    log:
+        'logs/si_matrix_{alf_simul}_k{si_k}_raw_r{no_repeats}.log'
+    shell:
+        '%s/si_matrix.py --raw {input} {wildcards.si_k} > {output} 2> {log}' %SCRIPT_DIR
 
 
 rule run_dcj:
@@ -194,7 +210,9 @@ rule combine_into_results_table:
 rule plot_performance:
     input:
         expand('%s/results_si_k{k}.csv' %RESULT_DIR, k = SI_K),
-        '%s/results_dcj.csv' %RESULT_DIR,
+        expand('%s/results_si_k{k}_raw.csv' %RESULT_DIR, k= map(lambda x: x//2,
+            NO_GENES)),
+#        '%s/results_dcj.csv' %RESULT_DIR,
     output:
         expand('%s/boxplot_s{no_species}_n{no_genes}.pdf' %RESULT_DIR,
                 no_species = NO_SPECIES, no_genes = NO_GENES)
@@ -218,15 +236,33 @@ rule plot_performance:
                 time = sorted(set(res[:, 2]))
                 rf_dist = list(np.mean(res[res[:, 2] == t, -1]) for t in time)
                 max_dist = max(max_dist, max(rf_dist))
-                plt.plot(time, rf_dist, color='C%s' %i, label = 'k = %s'%k)
+#                upper_q = [np.quantile(res[res[:, 2] == t, -1], 0.95) for t in
+#                        time]
+#                lower_q = [np.quantile(res[res[:, 2] == t, -1], 0.05) for t in
+#                        time]
+#                plt.plot(time, upper_q, '-.', color = 'C%s' %i)
+#                plt.plot(time, lower_q, '-.', color = 'C%s' %i)
+                plt.plot(time, rf_dist, marker='%s' %(i+1), linestyle='None',
+                        color='C%s' %i, label = 'k = %s'%k)
 
-            # plot DCJ distances
-            data = np.loadtxt('%s/results_dcj.csv' %RESULT_DIR)
+
+            # plot raw SI distance
+            data = np.loadtxt('%s/results_si_k%s_raw.csv' %(RESULT_DIR, g//2))
             res = data[(data[:, 0] == s) & (data[:, 1] == g), :]
             time = sorted(set(res[:, 2]))
             rf_dist = list(np.mean(res[res[:, 2] == t, -1]) for t in time)
             max_dist = max(max_dist, max(rf_dist))
-            plt.plot(time, rf_dist, color='C%s' %(i+1), label = 'DCJ')
+            ax = plt.plot(time, rf_dist, color='C%s' %(i+1), label = r'$d_{SI}$')
+            i += 1
+
+#            # plot DCJ distances
+#            data = np.loadtxt('%s/results_dcj.csv' %RESULT_DIR)
+#            res = data[(data[:, 0] == s) & (data[:, 1] == g), :]
+#            time = sorted(set(res[:, 2]))
+#            rf_dist = list(np.mean(res[res[:, 2] == t, -1]) for t in time)
+#            max_dist = max(max_dist, max(rf_dist))
+#            ax = plt.plot(time, rf_dist, color='C%s' %(i+1), label = 'DCJ')
+
 
             plt.ylim([0, max_dist])
             plt.title(title)

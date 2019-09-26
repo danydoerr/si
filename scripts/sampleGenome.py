@@ -59,7 +59,8 @@ def countHits(A, B, k):
     g2pos = [-1] * (max(max(A), max(B))+1)
 
     for i, g in enumerate(A):
-        g2pos[g] = i
+        if g:
+            g2pos[g] = i
 
     # total count of neighborhood matches
     s = 0
@@ -98,9 +99,10 @@ def si(A, B, k):
 
     return sAB/(2.*k*n)
 
-def estimateSI(n, mu, k, t):
+def estimateSI(n, lam, k, t):
     """ \widetilde{SI} """
-    return (1-np.exp(-3./n*t)) * (1-2.*k/(n-1)*(np.exp(-3./n*mu*t)))
+    k = min(k, (n-2.)/2.)
+    return (1-np.exp(-(3.-(5.*k)/(n-1.))/n*lam*t)) * (1.-2.*k/(n-1.))
     #return (1-np.exp(-(3*lam+2.*mu)*t/n))
 
 
@@ -131,8 +133,11 @@ def inverseSI(si, mu, n, k):
 
 def inverseSIHgtOnly(si, lam, n, k):
 
+    k = min(k, (n-2.)/2.)
     x = max(0, 1.-si/(1-2.*k/(n-1)))
-    return min(-n/((1-lam)*(3.-(5.*k)/(n-1))) * np.log(x), 6*n)
+    return min(-n/(lam*(3.-(5.*k)/(n-1))) * np.log(x), 6*n)
+    #return min(-n/(lam*3.) * np.log(x), 6*n)
+
 
 def evolve(genome, indel_ratio, time, c):
     """ evolves a genome along evolutionary time according to the given rates of
@@ -230,10 +235,10 @@ if __name__ == '__main__':
         LOG.info('plotting result')
         ext = len(args.k) > 1 and ' for $k = %s$' %k or ''
         plt.plot(x, [1-np.median(data_i[:, z]) for z in xrange(data_i.shape[1])],
-                color = 'C%s' %i, label=r'median SI%s' %ext)
-        plt.plot(x, estimateSI(args.n, args.indelratio, k, x), '--',
-                color='C%s' %i, label=r'$si%s(t)$%s' %(args.indelratio and '\''
-                    or '', ext))
+                color = 'C%s' %i, label=r'median $d_{SI}$%s' %ext)
+        y = estimateSI(args.n, 1, k, x)
+        plt.plot(x, y, '--', color='C%s' %i, label=r'$si%s(t)$%s'
+                %(args.indelratio and '\'' or '', ext))
 
         data.append(data_i)
 
@@ -253,6 +258,7 @@ if __name__ == '__main__':
     if args.estimate_distance:
 
         plt.figure()
+        legends = list()
         for i, k in enumerate(args.k):
             LOG.info(('estimate evolutionary distance from simulated SI ' + \
                     'values for k = %s') %k)
@@ -261,25 +267,33 @@ if __name__ == '__main__':
                 if not (s % max(1, data[i].shape[0]/100)):
                     LOG.info('%s%%' %((100*s)/data[i].shape[0]))
                 for t in xrange(data[i].shape[1]):
-                    iv = args.indelratio and inverseSI or inverseSIHgtOnly
-                    est_d[s,t] = iv(1-data[i][s,t], args.indelratio, args.n, k)
+                    #iv = args.indelratio and inverseSI or inverseSIHgtOnly
+                    iv = inverseSIHgtOnly
+                    est_d[s,t] = iv(1-data[i][s,t], 1, args.n, k)
 
-            medians = [np.median(est_d[np.isfinite(est_d[:, z]), z]) for z in xrange(est_d.shape[1])]
-            upper_q = [np.quantile(est_d[np.isfinite(est_d[:, z]), z], 0.95) for z in xrange(est_d.shape[1])]
-            lower_q = [np.quantile(est_d[np.isfinite(est_d[:, z]), z], 0.05) for z in xrange(est_d.shape[1])]
+            medians = [np.median(est_d[np.isfinite(est_d[:, z]), z]) for z in
+                    xrange(est_d.shape[1])]
+            upper_q = [np.quantile(est_d[np.isfinite(est_d[:, z]), z], 0.95)
+                    for z in xrange(est_d.shape[1])]
+            lower_q = [np.quantile(est_d[np.isfinite(est_d[:, z]), z], 0.05)
+                    for z in xrange(est_d.shape[1])]
 
             ext = len(args.k) > 1 and ' for $k = %s$' %k or ''
-            plt.plot(x, medians, color='C%s' %i, label = r'median $\hat t$%s' %ext)
-            plt.plot(x, upper_q, '-.', color = 'C%s' %i, label = r'$0.95\%%$ quantile%s' %ext)
-            plt.plot(x, lower_q, ':', color = 'C%s' %i, label = r'$0.05\%%$ quantile%s' %ext)
+            ax1 = plt.plot(x, medians, color='C%s' %i)
+            ax2 = plt.plot(x, upper_q, '-.', color = 'C%s' %i)
+            plt.plot(x, lower_q, '-.', color = 'C%s' %i)
+            legends.append((ax1[0], r'median $\hat d$%s' %ext))
+            legends.append((ax2[0], r'$5\%%$/$95\%%$ quantile%s' %ext))
 
-        plt.plot(x, x, color='C%s' %len(args.k), label='true distance')
+        ax = plt.plot(x, x, color='C%s' %len(args.k))
+        legends.append((ax[0], 'true distance'))
         plt.title(title)
-        plt.legend(loc='upper right')
+
+        plt.legend(*zip(*legends), loc='upper right')
         plt.xlabel('$t$ (time)')
         plt.ylabel('inferred evolutionary distance')
         est_d_flat = est_d.flatten()
-        plt.ylim([0, np.min((np.max(est_d_flat[np.isfinite(est_d_flat)]), args.time, 10*args.n))])
-        plt.savefig('distance_plot.pdf', format='pdf')
+        plt.ylim([-0.1, np.min((args.time, 10*args.n))])
+        plt.savefig('distance_plot_i%s.pdf' %args.indelratio, format='pdf')
 
     LOG.info('DONE')
