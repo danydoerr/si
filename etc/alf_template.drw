@@ -15,13 +15,13 @@ gammaLengthDist := [1, 1]:
 minGeneLength := 1;
 
 # parameters concerning the species tree
-treeType := 'Custom':
-scaleTree := false: 
-treeFile := '{TREE_FILE}':
-#treeType := 'ToLSample':
-#mutRate := {PAM}:        # PAM distance from origin to recent species (for random trees)
-#NSpecies := {NO_SPECIES};
-#scaleTree := true: 
+#treeType := 'Custom':
+#scaleTree := false: 
+#treeFile := '{TREE_FILE}':
+treeType := 'ToLSample':
+mutRate := {PAM}:        # PAM distance from origin to recent species (for random trees)
+NSpecies := {NO_SPECIES};
+scaleTree := true: 
 
 # parameters concerning the substitution models
 substModels := [SubstitutionModel('WAG')];

@@ -95,9 +95,9 @@ def si(A, B, k):
     n = len(set(A+B))
 
     sAB, hit_indelAB, m_AB = countHits(A, B, k)
-    #sBA, hit_indelBA, m_BA = countHits(B, A, k)
+    sBA, hit_indelBA, m_BA = countHits(B, A, k)
 
-    return sAB/(2.*k*n)
+    return max(sAB, sBA)/(2.*k*n)
 
 def estimateSI(n, lam, k, t):
     """ \widetilde{SI} """

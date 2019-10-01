@@ -2,12 +2,19 @@
 #
 
 alf_bin: /prj/tools/biotools/alf/bin/alfsim
+distmat_dir: distances
+genome_dir: genomes
+insertion_rate: 0 #0.0001
+loss_rate: 0 #0.0001
 no_genes: [1000]
-no_repeats: 500
+no_repeats: 300
 no_species: 10
-pams: [0.5, 1, 3, 5, 7, 10, 20, 30, 50]
+pams: [10, 30, 50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800]
+result_dir: results
 si_k_neighborhood: [10, 50, 100]
-transposition_rate: 0.01
+simulation_data_dir: alf_data
+transposition_rate: 0.001
+tree_dir: trees
 
 #
 # DON'T TOUCH UNLESS YOU KNOW WHAT YOU'RE DOING -------------------------------

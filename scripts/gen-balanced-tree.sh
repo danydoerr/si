@@ -2,7 +2,7 @@
 
 TAXA_NO="$1"
 EXTEDG="$2"
-INT_EDG_RATIO="1"
+INT_EDG_RATIO="5"
 CHECK_INT1=`echo "$TAXA_NO" | egrep "^[0-9]+$"`
 CHECK_FLOAT1=`echo "$EXTEDG" | egrep "^[0-9]+(\.[0-9]*)?$"`
 

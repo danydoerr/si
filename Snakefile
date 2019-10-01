@@ -35,7 +35,7 @@ rule balanced_generate_tree:
     params:
         no_species = '{no_species}',
     output:
-        temp('trees/true_tree_s{no_species,\d+}.nwk')
+        temp('%s/true_tree_s{no_species,\d+}.nwk' %TREE_DIR)
     shell:
         '%s/gen-balanced-tree.sh {params.no_species} 1 ' %SCRIPT_DIR +
         '> {output}'
@@ -43,16 +43,16 @@ rule balanced_generate_tree:
 
 rule rescale_tree:
     input:
-        'trees/true_tree_s{no_species}.nwk'
+        '%s/true_tree_s{no_species}.nwk' %TREE_DIR
     output:
-        'trees/true_tree_s{no_species}_pam{pam,[0-9.]+}.nwk'
+        '%s/true_tree_s{no_species}_pam{pam,[0-9.]+}.nwk' %TREE_DIR
     shell:
         '%s/rescale.py -a{wildcards.pam} {input} > {output}' %SCRIPT_DIR
 
 rule copy_alf_conf:
     input:
         conf = ALF_CONF,
-        tree_file = 'trees/true_tree_s{no_species}_pam{pam}.nwk'
+        tree_file = '%s/true_tree_s{no_species}_pam{pam}.nwk' %TREE_DIR
     output:
         '%s/s{no_species}_n{no_genes}_pam{pam,[^/]+}/{no_repeat,\d+}.drw' %SIM_DATA_DIR
     shell:
@@ -210,9 +210,9 @@ rule combine_into_results_table:
 rule plot_performance:
     input:
         expand('%s/results_si_k{k}.csv' %RESULT_DIR, k = SI_K),
-        expand('%s/results_si_k{k}_raw.csv' %RESULT_DIR, k= map(lambda x: x//2,
-            NO_GENES)),
-#        '%s/results_dcj.csv' %RESULT_DIR,
+#        expand('%s/results_si_k{k}_raw.csv' %RESULT_DIR, k= map(lambda x: x//2,
+#            NO_GENES)),
+        '%s/results_dcj.csv' %RESULT_DIR,
     output:
         expand('%s/boxplot_s{no_species}_n{no_genes}.pdf' %RESULT_DIR,
                 no_species = NO_SPECIES, no_genes = NO_GENES)
@@ -242,26 +242,25 @@ rule plot_performance:
 #                        time]
 #                plt.plot(time, upper_q, '-.', color = 'C%s' %i)
 #                plt.plot(time, lower_q, '-.', color = 'C%s' %i)
-                plt.plot(time, rf_dist, marker='%s' %(i+1), linestyle='None',
-                        color='C%s' %i, label = 'k = %s'%k)
+                plt.plot(time, rf_dist, color='C%s' %i, label = 'k = %s'%k)
 
 
-            # plot raw SI distance
-            data = np.loadtxt('%s/results_si_k%s_raw.csv' %(RESULT_DIR, g//2))
-            res = data[(data[:, 0] == s) & (data[:, 1] == g), :]
-            time = sorted(set(res[:, 2]))
-            rf_dist = list(np.mean(res[res[:, 2] == t, -1]) for t in time)
-            max_dist = max(max_dist, max(rf_dist))
-            ax = plt.plot(time, rf_dist, color='C%s' %(i+1), label = r'$d_{SI}$')
-            i += 1
-
-#            # plot DCJ distances
-#            data = np.loadtxt('%s/results_dcj.csv' %RESULT_DIR)
+#            # plot raw SI distance
+#            data = np.loadtxt('%s/results_si_k%s_raw.csv' %(RESULT_DIR, g//2))
 #            res = data[(data[:, 0] == s) & (data[:, 1] == g), :]
 #            time = sorted(set(res[:, 2]))
 #            rf_dist = list(np.mean(res[res[:, 2] == t, -1]) for t in time)
 #            max_dist = max(max_dist, max(rf_dist))
-#            ax = plt.plot(time, rf_dist, color='C%s' %(i+1), label = 'DCJ')
+#            ax = plt.plot(time, rf_dist, color='C%s' %(i+1), label = r'$d_{SI}$')
+#            i += 1
+
+            # plot DCJ distances
+            data = np.loadtxt('%s/results_dcj.csv' %RESULT_DIR)
+            res = data[(data[:, 0] == s) & (data[:, 1] == g), :]
+            time = sorted(set(res[:, 2]))
+            rf_dist = list(np.mean(res[res[:, 2] == t, -1]) for t in time)
+            max_dist = max(max_dist, max(rf_dist))
+            ax = plt.plot(time, rf_dist, color='C%s' %(i+1), label = 'DCJ')
 
 
             plt.ylim([0, max_dist])
