@@ -6,7 +6,7 @@ from os.path import dirname, basename, join
 from glob import glob
 import re
 
-from alf import readHomologies, readGenePositions, matrix2families
+from alf import readHomologies, readGenePositions
 
 
 PAT_SPECIES = re.compile('SE(\d+)')
@@ -18,30 +18,15 @@ if __name__ == '__main__':
 
     out = stdout
 
-    MATRIX = readHomologies(open(argv[1]))
+    #MATRIX = readHomologies(open(argv[1]))
     DB_DIR = join(dirname(argv[1]), '..', 'DB')
 
-    POS_rev = list()
-    GNAME   = list()
-    SID     = list()
-
     for f in glob(join(DB_DIR, '*_aa.fa')):
-        sid_f = int(PAT_SPECIES.match(basename(f)).group(1))
-        SID.append(sid_f)
+        sid = int(PAT_SPECIES.match(basename(f)).group(1))
         # read gene positions in ALF's fasta files, we do not need to know the
         # orientation of the genes inside the genome..
-        ORIENT_f, POS_f, GNAME_f = izip(*readGenePositions(open(f)))
-        POS_rev_f = [0] * (max(POS_f)+1)
-        for i, p in enumerate(POS_f[1:]):
-            POS_rev_f[p] = i
-        POS_rev.append(POS_rev_f)
-        GNAME.append(GNAME_f)
-
-    FAMS = matrix2families(MATRIX, POS_rev, GNAME)
-
-    for i, POS_rev_i in enumerate(POS_rev):
-        sid = SID[i]
+        _, _ , GNAME = izip(*readGenePositions(open(f)))
         print >> out, '>SE%03i' %sid
-        for p in POS_rev_i:
-            print >> out, FAMS[sid-1][p],
+        for g in GNAME[1:]:
+            print >> out, g[1:g.find('_')],
         print >> out, ''

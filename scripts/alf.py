@@ -48,29 +48,6 @@ def readHomologies(vp_data):
                 stack.append(cur_elem)
     return stack.pop()
 
-def matrix2families(mtrx, POS_rev, GNAME):
-
-    res = [[0] * len(mtrx[i][0]) for i in xrange(len(mtrx))]
-    c = 1
-    for i in xrange(len(mtrx)):
-        for p in xrange(len(mtrx[i][0])):
-            if  len(POS_rev[i]) > p:
-                pr = POS_rev[i][p]
-                for j in xrange(len(mtrx)):
-                    for q in mtrx[i][j][p]:
-                        if len(POS_rev[j]) > q-1:
-                            qr = POS_rev[j][q-1]
-                            # second condition checks for main orthology (in case of
-                            # duplications)
-                            if res[j][q-1] and \
-                                    GNAME[i][pr+1][:GNAME[i][pr+1].find('_')] == \
-                                    GNAME[j][qr+1][:GNAME[j][qr+1].find('_')]:
-                                res[i][p] = res[j][q-1]
-                                break
-                    if not res[i][p]:
-                        res[i][p] = c
-                        c += 1
-    return res
 
 def readGenePositions(fastadata):
     res = list()
