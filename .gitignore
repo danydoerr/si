@@ -1,5 +1,6 @@
 **/*.log
 **/.*.swp
+**/.DS_Store
 .snakemake/**
 alf_data/**
 alf_data_indel/**
