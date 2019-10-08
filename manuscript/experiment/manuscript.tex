@@ -1,14 +1,15 @@
 \documentclass[9pt,english,utf8]{article}
 
+\usepackage{amsfonts}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage{amsfonts}
 \usepackage{array}
 \usepackage{booktabs}
 \usepackage{caption}
 \usepackage{cases}
 \usepackage{enumerate}
 \usepackage{graphicx}
+\usepackage{placeins}
 \usepackage{subfigure}
 \usepackage{units}
 \usepackage{xcolor}
@@ -45,10 +46,10 @@ inverse of the measure with the aim to derive additive distances:
     \log\left(1 - \frac{d_{SI}}{1-\frac{2k}{n-1}}\right)
 \end{equation}
 
-The goal of this experiment is to evaluate the SI distance in an applied
-setting that is close to practice. Therefore, we simulate genome evolution of
-multiple taxa that evolve under our HGT model as well as genome evolution with
-single gene insertions and deletions. 
+The goal of this experiment is to evaluate the SI distance in a setting close
+to practical application. Therefore, we simulate genome evolution of multiple
+taxa that evolve under our HGT model as well as genome evolution with single
+gene insertions and deletions. 
 
 \paragraph{Genome evolution.} We used ALF~\cite{Dalquen:2012dx} as genome
 evolution simulator of phylogenies with more than two taxa. ALF supports
@@ -56,29 +57,35 @@ various genome rearrangement operations, one of which being
 \emph{translocations}. Translocations, more commonly known as
 \emph{transpositions}, permute the gene order by moving blocks of genes from
 one genomic location to another. ALF provides parameters to limit the number of
-genes that are transposed in one event. In accordance with our model, we set
-this number to 1. By doing so, ALF's genome rearrangement model under
-transpositions is equivalent to the HGT model underlying our study.
-Counterbalancing the computation time with a realistic scenario, the number of
-genes per genome in the simulations is set to 1000. 
+genes that are transposed in one event. We set this number to 1. By doing so,
+ALF's genome rearrangement model under transpositions is equivalent to the HGT
+model underlying our study, in which genomic sequences are permuted by
+\emph{jumps} of single genes. Trading (realistic) genome sizes for computation
+time, the number of genes per genome in the simulations is set to 1000. By
+default, ALF measures mutations in \emph{percent accepted mutations} (PAM)
+corresponding to the average number of substitutions per 100 genomic sites.
+(Although the underlying sequence of genes is not considered in our
+experimental setting, ALF requires their inclusion in the simulation of genome
+evolution.) Relative to the percent of accepted mutation of substitutions per
+site, \emph{mutation rates} for all other types of mutation are set. 
 
 \medskip
-The phylogenetic trees subject to reconstruction were sampled by ALF from the
-tree of life. A random sample of nine trees is displayed in Figure
-\ref{fig:mutations}(a). Many trees feature short internal edges
-w.r.t.~external edges.  These configurations are known to be difficult to
-reconstruct. To quantify the quality of reconstruction under various
-evolutionary scenarios, we scaled these trees from small diameters (10 PAM) to
-large (800 PAM) using a constant transposition rate of $0.001$. For each tree
-size, 300 data samples (each encompassing a sampled tree, genes, gene order
-sequences, etc.) were generated. 
+The phylogenetic trees subject to reconstruction were constructed using ALF's
+functionality to sample subtrees from the tree of life. A random sample of nine
+trees is displayed in Figure \ref{fig:mutations}(a). Many trees feature short
+internal edges w.r.t.~external edges.  These configurations are known to be
+difficult to reconstruct. To quantify the quality of reconstruction under
+various evolutionary scenarios, we scaled these trees from small diameters (10
+PAM) to large (800 PAM), thereby keeping a constant transposition rate of
+$0.001$. For each tree size, 300 data samples (each encompassing a sampled
+tree, genes, gene order sequences, etc.) were generated. 
 
-\begin{figure}[tb]
+\begin{figure}[tbh]
     \subfigure[]{
-    \includegraphics[width=0.60\columnwidth]{actual_mutations_s10_n10000}
+    \includegraphics[width=\columnwidth]{actual_mutations_s10_n10000}
     }
     \subfigure[]{
-    \includegraphics[width=0.35\columnwidth]{actual_mutations_s10_n10000_insertion_deletion}
+            \includegraphics[width=0.70\columnwidth]{actual_mutations_s10_n10000_insertion_deletion}
     }
     \caption{\textbf{(a)} Total numbers of transpositions and \textbf{(b)}
     insertions+deletions per data point in the simulations.}
@@ -95,10 +102,9 @@ as copies in duplication events are considered \emph{insertions}. The actual
 numbers of insertions and deletions per PAM summarized over each tree is shown
 in Figure~\ref{fig:mutations}(b).
 
-
 \paragraph{Experimental setup.}
 First, we performed a simple experiment in reconstructing pairwise distances,
-i.e.  estimating the true evolutionary time from SI measures. To this end, we
+i.e., estimating the true evolutionary time from SI measures. To this end, we
 sampled 10 genome sequences comprising 1000 genes per time point and calculated
 $\hat d$ for different values of $k$.  
 
@@ -112,7 +118,9 @@ The quality of the reconstruction is subsequently quantified by comparing the
 topology of the reconstructed and the original tree using the classic
 \emph{Robinson-Foulds} (RF) distance.  
 
-\begin{figure}[tb]
+\FloatBarrier
+
+\begin{figure}[tbh]
     \centering \includegraphics[width=\columnwidth]{true_trees_s10_pam10}
 
     \caption{A random sample of 9 phylogenetic trees of 10 taxa generated ALF
@@ -126,6 +134,7 @@ inverted SI being not truthful to the true time, it remains additive for a
 large range of evolutionary time. This indicates that the measure is
 well-suited for distance-based reconstruction of phylogenetic trees. 
 
+
 Figure~\ref{fig:results}(b) shows the outcome of the experiment of inferring
 the 10 taxa comprising trees sampled from the tree of life (cf.
 Figure~\ref{fig:tree}) from low to high numbers of mutations (measured in PAM).
@@ -134,7 +143,9 @@ HGT model: for low values of PAM, not enough HGTs are taking place, whereas for
 large values of PAM, the gene order sequences are saturated from the excess of
 HGT events. 
 
-\begin{figure}[tb]
+\remove
+{
+\begin{figure}[tbh]
 \begin{center}
 
 \begin{tabular}{cc}
@@ -154,24 +165,22 @@ distances between the reconstructed and true trees of the simulation. }
 \label{fig:results}
 \end{center}
 \end{figure}
+}
 
-\remove
-{
-\begin{figure}[tb]
+\begin{figure}[tbh!]
     
     \subfigure[]{
-    \includegraphics[width=0.8\columnwidth]{distance_plot_n1000_s10_inv}
+    \includegraphics[width=\columnwidth]{distance_plot_n1000_s10_inv}
     }
     \subfigure[]{
-    \includegraphics[width=0.8\columnwidth]{boxplot_s10_n1000}
+    \includegraphics[width=\columnwidth]{boxplot_s10_n1000}
     }
 
     \caption{\textbf{(a)} Median, $5\%$-, and $95\%$-quantiles of inferred
     pairwise distances $\hat t = d_{SI}$ for $k=10, 400$. \textbf{(b)} Mean RF
-distances between the reconstructed and true trees of the simulation. }
+    distances between the reconstructed and true trees of the simulation. }
 \label{fig:results}
 \end{figure}
-}
 
 Next to the SI distance, we included the double-cut-and-join (DCJ)
 distance~\cite{Yancopoulos:2005bm,Bergeron:2006uj} for comparison. The DCJ
@@ -195,9 +204,9 @@ outperforms the DCJ distance eventually---even under poor choices of $k$ (cf.
 $k=100$).
 
 \medskip
-The last experiment concerns the impact of gene content changes, i.e.
+The last experiment concerns the impact of gene content changes, i.e.,
 insertions and deletions of individual genes, on the SI distance. Unlike DCJ,
-which requires that that each gene occurs exactly once in all compared genomes,
+which requires that each gene occurs exactly once in all compared genomes,
 the SI distance is able to handle such gene content modifications.  Here, we
 compare our estimator of the true evolutionary time $\hat d$ to the
 \emph{Jaccard distance} over the gene content of the two compared sequences.
@@ -215,13 +224,27 @@ in the poor performance of the gene content distance for phylogenies with span
 lower than 400 PAM. The inverted SI distance $\hat d$ perform continuously
 well, in particular for low values of $k$. 
 
+\FloatBarrier
 
 \begin{figure}[tb]
-    
-    \centering \includegraphics[width=0.8\columnwidth]{boxplot_s10_n1000_indel}
+   
+    \subfigure[]{
+        \includegraphics[width=\columnwidth]{distance_plot_n1000_s10_i02_inv}
+    }
 
-    \caption{Mean RF distances between the reconstructed and true trees of the
-    genome evolution experiment with insertions and deletions.}
+%    \subfigure[]{
+%        \includegraphics[width=0.8\columnwidth]{experiment_i0.2}
+%    }
+    \subfigure[]{
+        \includegraphics[width=\columnwidth]{boxplot_s10_n1000_indel}
+    }
+
+
+    \caption{\textbf{(a)} Estimated and observed SI distance of simulated
+    sequence pairs under the indel model. \textbf{(b)} Mean RF distances
+    between the reconstructed and true trees of the genome evolution experiment
+    with insertions and deletions.}
+
 \label{fig:results_indel}
 \end{figure}
 
