@@ -235,10 +235,11 @@ if __name__ == '__main__':
         LOG.info('plotting result')
         ext = len(args.k) > 1 and ' for $k = %s$' %k or ''
         plt.plot(x, [1-np.median(data_i[:, z]) for z in xrange(data_i.shape[1])],
-                color = 'C%s' %i, label=r'median $d_{SI}$%s' %ext)
+                color = 'C%s' %i, label=r'median $\hat d$%s' %ext)
         y = estimateSI(args.n, 1, k, x)
-        plt.plot(x, y, '--', color='C%s' %i, label=r'$si%s(t)$%s'
-                %(args.indelratio and '\'' or '', ext))
+#        plt.plot(x, y, '--', color='C%s' %i, label=r'$si%s(t)$%s'
+#                %(args.indelratio and '\'' or '', ext))
+        plt.plot(x, y, '--', color='C%s' %i, label=r'$d_{si}(t)$%s' %ext)
 
         data.append(data_i)
 
@@ -250,7 +251,8 @@ if __name__ == '__main__':
 
     plt.title(title)
     plt.xlabel('$t$ (time)')
-    plt.ylabel('$d_{\overline{SI}_k}$')
+#    plt.ylabel('$d_{SI}$')
+    plt.ylabel('distance')
     plt.legend(loc='lower right')
     plt.savefig(stdout, format='pdf')
     plt.close()
