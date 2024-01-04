@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter as ADHF
 from itertools import combinations, chain

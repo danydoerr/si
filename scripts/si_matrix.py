@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from sys import stdout, stderr, exit, maxint
+from sys import stdout, stderr, exit, maxsize
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter as ADHF
 from itertools import combinations, chain
 import logging
@@ -41,7 +41,7 @@ def constructSIDistMat(genomes, k, lam, do_raw=False):
     # assume that all genomes have equal size
     n = len(genomes[0])
 
-    for i, j in combinations(xrange(len(genomes)), 2):
+    for i, j in combinations(range(len(genomes)), 2):
         x = si(genomes[i], genomes[j], k)
         val = 1-x
         if not do_raw:
@@ -52,15 +52,15 @@ def constructSIDistMat(genomes, k, lam, do_raw=False):
 
 def writeDistMat(gNames, D, out):
 
-    print >> out, '\t'.join(chain(('', ), gNames))
+    print('\t'.join(chain(('', ), gNames)))
 
     for i, name in enumerate(gNames):
-        print >> out, '\t'.join(chain((name, ), map(str, D[i, :])))
+        print('\t'.join(chain((name, ), map(str, D[i, :]))))
 
 
 if __name__ == '__main__':
     parser = ArgumentParser(formatter_class=ADHF)
-    parser.add_argument('genomes', type=file,
+    parser.add_argument('genomes', type=open,
             help = 'Gene order data of all genomes in fasta-like format')
     parser.add_argument('k', type=int,
             help = 'SI parameter \"neighborhood size\" k')

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from sys import stdout, stderr, exit, maxint
+from sys import stdout, stderr, exit, maxsize
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter as ADHF
 from functools import partial
 from scipy import random
@@ -23,7 +23,7 @@ LOG.setLevel(logging.DEBUG)
 def calcIndelDistribution(n, t):
 
     dist = [1]
-    for t in xrange(t):
+    for t in range(t):
         tmp = [0] * (t+2)
         for i, p in enumerate(dist):
             p0=1-float(t-i)/n
@@ -51,11 +51,11 @@ def countHits(A, B, k):
         if g2pos[g] > -1:
             NgB = set()
             # neighborhood in B
-            for j in xrange(i-k, i+k+1):
+            for j in range(i-k, i+k+1):
                 NgB.add(B[j % len(B)])
 
             # neighborhood in A
-            for j in xrange(g2pos[g]-k,g2pos[g]+k+1):
+            for j in range(g2pos[g]-k,g2pos[g]+k+1):
                 if A[j % len(A)] in NgB:
                     si += 1
             # remove count for i itself
@@ -74,7 +74,7 @@ def runExperimentOneStep(k):
     data = [None] * (2*k-1)
     
     A = constructGenome(4*k)
-    for pp in xrange(k+1, 3*k):
+    for pp in range(k+1, 3*k):
         B = list(A)
         # always choose gene at position k
         gene = B.pop(k)
@@ -133,17 +133,14 @@ if __name__ == '__main__':
     dist = np.zeros((args.t, args.n))
     for t, t_dist in enumerate(calcIndelDistribution(n, args.t)):
         dist[t,n-t-1:] = np.array(t_dist[:-1])
-    import pdb; pdb.set_trace() 
-   
-    
 
 #    dist = calculateDistOneStep(args.n, args.k)
 #    sample_from_analytic = np.array([np.random.choice(dist) for _ in
-#        xrange(args.samples)])
+#        range(args.samples)])
 #   
 #    sample_from_simulated = np.empty((args.samples, ))
 #    A = constructGenome(args.n)
-#    for i in xrange(args.samples):
+#    for i in range(args.samples):
 #        sample_from_simulated[i] = 1-si(A, hgt(list(A)), args.k)
 #    
 #    plt.hist([sample_from_analytic, sample_from_simulated])

@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 
-from sys import stdout, stderr, exit, maxint
+from sys import stdout, stderr, exit
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter as ADHF
 from scipy.optimize import newton
-from scipy import random
+from scipy.stats import randint, poisson
 import logging
 
 import os
-if not os.environ.get('DISPLAY', None):
-    import matplotlib; matplotlib.use('Agg')
-
 from matplotlib import pylab as plt
 import numpy as np
 
@@ -28,12 +25,12 @@ def indel(genome, n, c, random_pos=False):
     """ perform an event that alters the gene content """
     #common = [i for i, x in enumerate(genome) if x <= n]
     #p = random.choice(common)
-    p = random.randint(0, len(genome))
+    p = randint.rvs(0, len(genome))
     new_indel = genome[p] <= n
     if random_pos:
         gene = genome.pop(p)
         # new insertion spot
-        pp = random.randint(0, len(genome)+1)
+        pp = randint.rvs(0, len(genome)+1)
         genome.insert(pp, c)
     else:
         genome[p] = c
@@ -44,10 +41,10 @@ def indel(genome, n, c, random_pos=False):
 def hgt(genome):
     """ perform an Horzontal Gene Transfer (HGT) event """
     # pick a gene
-    p = random.randint(0, len(genome))
+    p = randint.rvs(0, len(genome))
     gene = genome.pop(p)
     # new insertion spot
-    pp = random.randint(0, len(genome)+1)
+    pp = randint.rvs(0, len(genome)+1)
     genome.insert(pp, gene)
     return genome
 
@@ -72,12 +69,12 @@ def countHits(A, B, k):
         if g2pos[g] > -1:
             NgB = set()
             # neighborhood in B
-            for j in xrange(i-k, i+k+1):
+            for j in range(i-k, i+k+1):
                 NgB.add(B[j % len(B)])
 
             # neighborhood in A
             si = 0
-            for j in xrange(g2pos[g]-k,g2pos[g]+k+1):
+            for j in range(g2pos[g]-k,g2pos[g]+k+1):
                 if A[j % len(A)] in NgB:
                     si += 1
             # remove count for i itself
@@ -151,19 +148,19 @@ def evolve(genome, indel_ratio, time, c):
     """
 
     orig = c-1
-    for t in xrange(1, time+1):
-        indel_events = random.poisson(indel_ratio)
+    for t in range(1, time+1):
+        indel_events = poisson.rvs(indel_ratio)
         new_indel_events = 0
         ps = list()
-        for _ in xrange(indel_events):
+        for _ in range(indel_events):
             c, p, is_new = indel(genome, orig, c)
             new_indel_events += is_new and 1 or 0
             ps.append(p)
         if indel_events:
             LOG.debug(('%s indels occurring at time step %s at position(s) ' + \
                     '%s') %(indel_events, t, ','.join(map(str, sorted(ps)))))
-        hgt_events = random.poisson(1-indel_ratio)
-        for _ in xrange(hgt_events):
+        hgt_events = poisson.rvs(1-indel_ratio)
+        for _ in range(hgt_events):
             hgt(genome)
         if hgt_events:
             LOG.debug('%s HGTs occurring at time step %s' %(hgt_events, t))
@@ -182,7 +179,7 @@ def runExperiment(n, samples, time, indel_ratio, k):
 
     new_indels = np.empty(time)
     new_indels[0] = 0
-    for s in xrange(samples):
+    for s in range(samples):
         if not (s % max(1, samples/100)):
             LOG.info('%s%%' %((100*s)/samples))
         A = constructGenome(n)
@@ -222,7 +219,7 @@ if __name__ == '__main__':
     plt.rc('font', family='serif', size=12)
     plt.figure()
     title = r'$n=%s$' %args.n
-    x = np.array(xrange(1, args.time+1))
+    x = np.array(range(1, args.time+1))
 
     data = list()
     for i, k in enumerate(args.k):
@@ -234,7 +231,7 @@ if __name__ == '__main__':
 
         LOG.info('plotting result')
         ext = len(args.k) > 1 and ' for $k = %s$' %k or ''
-        plt.plot(x, [1-np.median(data_i[:, z]) for z in xrange(data_i.shape[1])],
+        plt.plot(x, [1-np.median(data_i[:, z]) for z in range(data_i.shape[1])],
                 color = 'C%s' %i, label=r'median $\hat d$%s' %ext)
         y = estimateSI(args.n, 1, k, x)
 #        plt.plot(x, y, '--', color='C%s' %i, label=r'$si%s(t)$%s'
@@ -254,7 +251,8 @@ if __name__ == '__main__':
 #    plt.ylabel('$d_{SI}$')
     plt.ylabel('distance')
     plt.legend(loc='lower right')
-    plt.savefig(stdout, format='pdf')
+    with os.fdopen(stdout.fileno(), 'wb', closefd=False) as out:
+        plt.savefig(out, format='pdf')
     plt.close()
 
     if args.estimate_distance:
@@ -265,20 +263,20 @@ if __name__ == '__main__':
             LOG.info(('estimate evolutionary distance from simulated SI ' + \
                     'values for k = %s') %k)
             est_d = np.empty(data[i].shape)
-            for s in xrange(data[i].shape[0]):
+            for s in range(data[i].shape[0]):
                 if not (s % max(1, data[i].shape[0]/100)):
                     LOG.info('%s%%' %((100*s)/data[i].shape[0]))
-                for t in xrange(data[i].shape[1]):
+                for t in range(data[i].shape[1]):
                     #iv = args.indelratio and inverseSI or inverseSIHgtOnly
                     iv = inverseSIHgtOnly
                     est_d[s,t] = iv(1-data[i][s,t], 1, args.n, k)
 
             medians = [np.median(est_d[np.isfinite(est_d[:, z]), z]) for z in
-                    xrange(est_d.shape[1])]
+                    range(est_d.shape[1])]
             upper_q = [np.quantile(est_d[np.isfinite(est_d[:, z]), z], 0.95)
-                    for z in xrange(est_d.shape[1])]
+                    for z in range(est_d.shape[1])]
             lower_q = [np.quantile(est_d[np.isfinite(est_d[:, z]), z], 0.05)
-                    for z in xrange(est_d.shape[1])]
+                    for z in range(est_d.shape[1])]
 
             ext = len(args.k) > 1 and ' for $k = %s$' %k or ''
             ax1 = plt.plot(x, medians, color='C%s' %i)
@@ -296,6 +294,7 @@ if __name__ == '__main__':
         plt.ylabel('inferred evolutionary distance')
         est_d_flat = est_d.flatten()
         plt.ylim([-0.1, np.min((args.time, 10*args.n))])
-        plt.savefig('distance_plot_i%s.pdf' %args.indelratio, format='pdf')
+        with open('distance_plot_i%s.pdf' %args.indelratio, 'w') as out:
+            plt.savefig(out, format='pdf')
 
     LOG.info('DONE')
