@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter as ADHF
 from itertools import combinations, chain
@@ -49,7 +49,7 @@ def readGenomes(data, genomesOnly=None):
                 else:
                     struture = CHR_LINEAR
                     genes = map(str2gene, line.split())
-                res[-1][1].append((structure, genes))
+                res[-1][1].append((structure, list(genes)))
     return res
 
 
@@ -81,7 +81,7 @@ def constructAdjacencyGraph(genomes):
                 v = (i, ) + tuple(sorted((prev, ext1)))
                 G.add_node(v)
                 for ext in (prev, ext1):
-                    if not ext2node.has_key(ext):
+                    if ext not in ext2node:
                         ext2node[ext] = list()
                     ext2node[ext].append(v)
                 prev = ext2
@@ -91,7 +91,7 @@ def constructAdjacencyGraph(genomes):
                 v = (i, ) + tuple(sorted((prev, telomere)))
                 G.add_node(v)
                 for ext in (prev, telomere):
-                    if not ext2node.has_key(ext):
+                    if ext not in ext2node:
                         ext2node[ext] = list()
                     ext2node[ext].append(v)
     for ext, vertices in ext2node.items():
@@ -112,9 +112,9 @@ def calcDCJ(G, n):
             if l %2:
                 i += 1
         else:
-            raise Exception, 'There is an error in the program, the adjacency ' + \
+            raise Exception('There is an error in the program, the adjacency ' + \
                     'graph has components that are neither simple cycles ' + \
-                    'nor simple paths'
+                    'nor simple paths')
     return n - c - i/2
 
 
@@ -130,7 +130,7 @@ def caldGenomeSize(genome):
 if __name__ == '__main__':
 
     parser = ArgumentParser(formatter_class=ADHF)
-    parser.add_argument('genomes', type=file,
+    parser.add_argument('genomes', type=open,
             help='Genome sequences in UniMoG format')
     args = parser.parse_args()
 
@@ -148,11 +148,11 @@ if __name__ == '__main__':
 
     n = caldGenomeSize(genomes[0][1])
     D = np.zeros((len(genomes), len(genomes)), dtype=int)
-    for i, j in combinations(xrange(len(genomes)), 2):
+    for i, j in combinations(range(len(genomes)), 2):
         G = constructAdjacencyGraph((genomes[i], genomes[j]))
         D[i,j] = D[j, i] = calcDCJ(G, n)
 
     gNames, _ = zip(*genomes)
-    print >> stdout, '\t'.join(chain(('', ), gNames))
+    print('\t'.join(chain(('', ), gNames)))
     for i, name in enumerate(gNames):
-        print >> stdout, '\t'.join(chain((name, ), map(str, D[i, :])))
+        print('\t'.join(chain((name, ), map(str, D[i, :]))))
